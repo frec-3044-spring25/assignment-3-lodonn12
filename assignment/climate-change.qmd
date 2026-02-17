@@ -75,7 +75,7 @@ Data from: <https://climate.nasa.gov/vital-signs/global-temperature/>
 
 **Question 3:**
 
-Describe the data set to the best of your ability, given the documentation provided. 
+Describe the data set to the best of your ability, given the documentation provided
 
 - Where is the data from?
 - Describe the class of each column and what units it is measured in. 
