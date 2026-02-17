@@ -44,14 +44,26 @@ ggplot(co2, aes(x = decimal_date, y = monthly_average)) +
 Describe the overall trend in the CO2 data.
 
 **Answer 1:**
+The overall trend shows a consistent and significant increase in atmospheric CO2 concentration from 1958 to the present. The black line (monthly average) shows a jagged pattern representing seasonal fluctuations, while the blue line shows a steady upward curve, suggesting that the rate of CO2 accumulation is accelerating over time
+
 
 **Question 2:**
 
 How does CO2 vary within a year?  What month is it at max?  Min?  What might explain this sub-annual pattern? (you will need to write code and make a plot to answer this question)
 
 **Answer 2:**
+```{r}
+co2_seasonal <- co2 %>%
+  group_by(month) %>%
+  summarise(mean_co2 = mean(monthly_average, na.rm = TRUE))
 
-
+ggplot(co2_seasonal, aes(x = month, y = mean_co2)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = 1:12) +
+  labs(title = "Average Seasonal CO2 Cycle", x = "Month", y = "Mean CO2")
+```
+C02 typically reaches its maximum in May and its minimum in September or October. This pattern could be due to plants beginning to grow in spring (May), with this the plants begin to grow over time and draw more CO2. By the end of September and October the plants are dormant which could release CO2 back into the atmosphere.
 
 ## Global Temperature Data
 
