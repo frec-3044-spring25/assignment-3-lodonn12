@@ -82,7 +82,13 @@ Describe the data set to the best of your ability, given the documentation provi
 - What is the difference between "global temperature" and "global temperature anomaly"? 
 
 **Answer 3:**
-TEST
+* Source: NASA's goddard Institute of Space Studies (GISS)
+
+* Columns: Year, No smoothing, Lowess
+
+* Degrees Celsius
+
+* Global Temp is the absolute temperature. Global Temp anomaly is the deviation from a long term baseline. 
 
 **Question 4:**
 
@@ -91,12 +97,30 @@ Construct the necessary R code to import and prepare for plotting the following 
 You'll need to determine the file's delimiter and any comments or skips. You will also need to be sure that you have column names. You will not directly use the code above to read the CO2 data, but that code provides helpful tips for reading the data.
 
 **Answer 4:**
+```{r}
+temp_data <- read.table("assign3dat.txt",
+                        skip = 5,
+                        header = FALSE,
+                        fill = TRUE)
+colnames(temp_data) <- c("year", "anomaly", "lowess_5")
+temp_data <- temp_data %>%
+  filter(!is.na(anomaly)) %>%
+  mutate(across(everything(), as.numeric))
 
+head(temp_data)
+```
 **Question 5:**
-
 Plot the trend in global mean temperatures over time.  Describe what you see in the plot and how you interpret the patterns you observe.
 
 **Answer 5:**
+```{r}
+ggplot(temp_data, aes(x = year, y = anomaly)) +
+  geom_line(color = "gray") +
+  geom_point() +
+  geom_line(aes(y = lowess_5), color = "red", size = 1) +
+  labs(title = "Global Land-Ocean Temp Anomaly", x = "Year", y = "Temp Anomaly (C)")
+```
+The plot shows a clear warming trend. Temperatures were relatively stable until the early 20th century, followed by a sharp increase starting around 1960. Most likely because of human industrialization 
 
 ## Evaluating the evidence for a "Pause" in warming?
 
@@ -109,25 +133,52 @@ You will use rolling averages to help you explore the evidence for a pause. Sinc
 Use a search engine (e.g., Google) or a chat LLM to find out how to calculate a rolling average in R. What search term or chat LLM prompt did you use?  What website or answer from the chat LLM did you end up using?  How much did you need to modify the code from the website or chat LLM to answer the question successfully?
 
 **Answer 6:**
+* Search Term: "how to calculate rolling average in R tidyverse zoo"
 
+* Website/Source: I used documentation for the zoo package found on CRAN and StackOverflow.
+
+* Modification: I learned that the rollmean() function is the most common tool. I had to modify the standard example by adding fill = NA to the function call so that the new columns would match the length of my temp_data data frame, and I wrapped it inside a mutate() function to add it to my existing data.
 **Question 7:**
 
 - What is the meaning of "5-year average" vs. "annual average"?
 - Create a data frame from the annual temperature anomaly data (from Question 4) with three new columns: 5-year running averages, 10-year running averages, and 20-year running averages.
 
 **Answer 7:**
+```{r}
+library(zoo)
 
+temp_averages <- temp_data %>%
+  mutate(
+    roll_5 = rollmean(anomaly, k = 5, fill = NA),
+    roll_10 = rollmean(anomaly, k = 10, fill = NA),
+    roll_20 = rollmean(anomaly, k = 20, fill = NA)
+  )
+
+head(temp_averages)
+```
 **Question 8:**
 
 Plot the different averages on the *same plot* and describe what differences you see and why.  
 
 **Answer 8:**
+```{r}
+ggplot(temp_averages, aes(x = year)) + 
+  geom_line(aes(y = anomaly), alpha = 0.2) + 
+  geom_line(aes(y = roll_5, color = "5-year")) +
+  geom_line(aes(y = roll_10, color = "10-year")) +
+  geom_line(aes(y = roll_20, color = "20-year")) +
+  theme_minimal() +
+  labs(title = "Global Warming Trends with Different Smoothing Windows",
+       x = "Year", y = "Temperature Anomaly (°C)", color = "Averaging Window")
+```
+As the averaging window increases, the line becomes significantly smoother because the larger windows is averaging out more of the short term year to year variability. The 20 year average provides the clearest look at the long term acceleration of global warming
 
 **Question 9:**
 
 By examining the data here, what evidence do you find or not find for such a pause? 
 
 **Answer 9:**
+While there is a slight flattening in the annual data points between 1998 and 2012, the rolling averages show that the warming trend never truly stopped. But the pause appears to be a short term fluctuation in a long term upward climb.
 
 ## Longer term trends in CO2 Records
 
@@ -168,11 +219,34 @@ Your answer to Question 10 is going to be a mix of code chunks and text that you
 - Describe your conclusions to the question "How do recent atmospheric CO2 levels compare to historical levels?" using your plot as supporting evidence.   
 
 **Answer 10:**
-
+ The Vostok dataset contains 4 columns: depth (meters), age_ice (years before present), age_air (years before present), and co2 (parts per million). These numbers come from air bubbles trapped in Antarctic ice, providing a direct record of past atmospheres.
+The resolution is variable, with samples occurring every few hundred to a few thousand years, spanning back 400,000 years.
 ```{r}
+vostok <- read_table("vostok.icecore.co2", 
+                     skip = 20, 
+                     col_names = c("depth", "age_ice", "age_air", "co2"))
 
+vostok_clean <- vostok %>%
+  mutate(year = 2000 - age_air) %>% 
+  select(year, monthly_average = co2) %>%
+  arrange(year)
 
+mauna_loa_clean <- co2 %>%
+  select(year = decimal_date, monthly_average)
+
+combined_co2 <- bind_rows(vostok_clean, mauna_loa_clean)
+
+ggplot(combined_co2, aes(x = year, y = monthly_average)) + geom_line(color = "blue") +
+  theme_bw() +
+  labs(title = "Atmospheric CO2 Concentration: 400,000 Years Ago to Present", x = "Year", y = "C02 Concentation")
+
+ggplot(combined_co2, aes(x = year, y = monthly_average)) +
+  geom_line(color = "red") +
+  xlim(-2000, 2025) +
+  labs(title = "CO2 Spike in the last 2,000 Years", x = "Year", y = "C02")
+  
 ```
+By comparing the historical ice core data to the modern Mauna Loa data, it is clear that recent atmospheric C02 levels are completely unprecedented. For 400,000 years, CO2 naturally cycled between approximately 180 ppm and 280 ppm. Today, we have surpassed 420 ppm. The rate of increase in the last 150 years is virtually vertical compared to the natural fluctuations of the past, proving that current conditions are not part of a natural cycle.
 
 # Render and committing
 
